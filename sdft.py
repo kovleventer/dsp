@@ -40,18 +40,30 @@ class mSDFT():
         for i in range(size):
             self.buffer.append(0)
 
+    @staticmethod
+    def get_range(k, n, N):
+        #return np.exp(-1j * 2 * np.pi * k * n / N)
+        firsthalf = np.exp(-1j * 2 * np.pi * k[:len(k) // 2 + 1] * n / N)
+        if len(k) % 2 == 0:
+            retval = np.concatenate((firsthalf, np.flip(firsthalf[1:-1]).conj()))
+        else:
+            retval = np.concatenate((firsthalf, np.flip(firsthalf[1:]).conj()))
+
+        return retval
+
+
     def process_point(self, x):
         self.cnt += 1
         lastx = self.buffer.popleft()
         self.buffer.append(x)
         if self.cnt == self.size:
-            new = np.fft.fft(np.array(self.buffer, dtype=np.csingle)) / np.exp(-1j * 2 * np.pi * np.arange(self.size) * (self.cnt % self.size) / self.size)
+            new = np.fft.fft(np.array(self.buffer, dtype=np.csingle)) / mSDFT.get_range(np.arange(self.size), self.cnt % self.size, self.size)
         else:
-            new = self.last_result + np.exp(-1j * 2 * np.pi * np.arange(self.size) * ((self.cnt-1) % self.size) / self.size) * (x - lastx)
+            new = self.last_result + mSDFT.get_range(np.arange(self.size), (self.cnt-1) % self.size, self.size) * (x - lastx)
 
         self.last_result = new.astype(np.csingle)
 
-        return (new * np.exp(1j * 2 * np.pi * np.arange(self.size) * (self.cnt % self.size) / self.size)).astype(np.csingle)
+        return (new * mSDFT.get_range(np.arange(self.size), self.cnt % self.size, self.size).conj()).astype(np.csingle)
 
 class MOVDFT():
     def __init__(self, size=10, type=np.csingle):
@@ -110,5 +122,5 @@ def plot_diffs():
 
 
 plot_diffs()
-plt.savefig("NOREPEAT_0.png")
+plt.savefig("test2.png")
 #plt.show()
