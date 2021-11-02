@@ -3,29 +3,28 @@ import scipy.signal
 import matplotlib.pyplot as plt
 import collections
 
-from forcedarray import csZeros, csArray, csExp, csSum
 
 np.random.seed(0)
-#x = np.random.randn(100000).astype(np.single)
-x = np.tile(np.random.randn(1000), 100)
+x = np.random.randn(32000).astype(np.single)
+#x = np.tile(np.random.randn(1000), 100)
 
 
 
 def get_range(k, mul):
-    return csExp(-1j * 2 * np.pi * k * mul)
-    #firsthalf = csExp(-1j * 2 * np.pi * csArray(k.array[:len(k.array) // 2 + 1]) * mul)
-    #if len(k.array) % 2 == 0:
-    #    retval = csArray(np.concatenate((firsthalf.array, np.flip(firsthalf.array[1:-1].conj()))))
-    #else:
-    #    retval = csArray(np.concatenate((firsthalf.array, np.flip(firsthalf.array[1:].conj()))))
+    #return np.exp(-1j * 2 * np.pi * k * mul).astype(np.csingle)
+    firsthalf = np.exp(-1j * 2 * np.pi * k[:len(k) // 2 + 1] * mul).astype(np.csingle)
+    if len(k) % 2 == 0:
+        retval = np.concatenate((firsthalf, np.flip(firsthalf[1:-1]).conj().astype(np.csingle))).astype(np.csingle)
+    else:
+        retval = np.concatenate((firsthalf, np.flip(firsthalf[1:]).conj().astype(np.csingle))).astype(np.csingle)
 
-    #return retval
+    return retval
 
 class SDFT():
     def __init__(self, size=10):
         self.buffer = collections.deque(maxlen=size)
         self.size = size
-        self.last_result = csZeros(size)
+        self.last_result = np.zeros(size, dtype=np.csingle)
         self.cnt = 0
         for i in range(size):
             self.buffer.append(0)
@@ -35,77 +34,80 @@ class SDFT():
         lastx = self.buffer.popleft()
         self.buffer.append(x)
 
-        new = get_range(csArray(np.arange(self.size)), 1 / self.size).conj() * (self.last_result + x - lastx)
+        new = get_range(np.arange(self.size), 1 / self.size).conj() * (self.last_result + x - lastx)
 
-        self.last_result = new
+        self.last_result = new.astype(np.csingle)
 
-        return self.last_result.array
+        return self.last_result
 
 class mSDFT():
     def __init__(self, size=10):
         self.buffer = collections.deque(maxlen=size)
         self.size = size
-        self.internal = csZeros(size)
+        self.last_result = np.zeros(size, dtype=np.csingle)
         self.cnt = 0
         for i in range(size):
-            self.buffer.append(0.)
+            self.buffer.append(0)
 
     def process_point(self, x):
         lastx = self.buffer.popleft()
         self.buffer.append(x)
 
-        g = get_range(csArray(np.arange(self.size)), ((self.cnt) % self.size) / self.size)
+        c = get_range(np.arange(self.size), ((self.cnt) % self.size) / self.size).conj()
+        g = c.conj()
 
-        new = self.internal + g * (x - lastx)
-        self.internal = new
+        new = self.last_result + g * (x - lastx)
+        self.last_result = new.astype(np.csingle)
 
         self.cnt += 1
-        return (new * get_range(csArray(np.arange(self.size)), (self.cnt % self.size) / self.size).conj()).array
+        return (new * get_range(np.arange(self.size), (self.cnt % self.size) / self.size).conj()).astype(np.csingle)
 
 class oSDFT():
     def __init__(self, size=10):
         self.buffer = collections.deque(maxlen=size)
         self.size = size
-        self.internal = csZeros(size)
+        self.internal = np.zeros(size, dtype=np.csingle)
         self.cnt = 0
         for i in range(size):
-            self.buffer.append(0.)
+            self.buffer.append(0)
 
     def process_point(self, x):
         self.cnt += 1
-        self.buffer.popleft()
+        lastx = self.buffer.popleft()
         self.buffer.append(x)
 
-        g = get_range(csArray(np.arange(self.size)), ((self.cnt-1) % self.size) / self.size)
-        c = g.conj()
+        c = get_range(np.arange(self.size), ((self.cnt-1) % self.size) / self.size).conj().astype(np.csingle)
+        g = c.conj().astype(np.csingle)
 
-        y = (csSum(c * self.internal) / self.size)
-        new = self.internal + (g * (x - y))
+        y = (np.sum(c * self.internal) / self.size).astype(np.csingle)
+        new = self.internal + (g * (x - y)).astype(np.csingle)
 
-        self.internal = new
 
-        return (self.internal * get_range(csArray(np.arange(self.size)), (self.cnt % self.size) / self.size).conj()).array
+        self.internal = new.astype(np.csingle)
+
+        return (self.internal * get_range(np.arange(self.size), (self.cnt % self.size) / self.size).conj()).astype(np.csingle)
 
 class resoSDFT():
     def __init__(self, size=10):
         self.buffer = collections.deque(maxlen=size)
         self.size = size
-        self.internal = csZeros(size)
+        self.internal = np.zeros(size, dtype=np.csingle)
         self.cnt = 0
         for i in range(size):
-            self.buffer.append(0.)
+            self.buffer.append(0)
 
     def process_point(self, x):
         self.cnt += 1
-        self.buffer.popleft()
+        lastx = self.buffer.popleft()
         self.buffer.append(x)
 
-        y = (csSum(self.internal) / self.size)
-        new = get_range(csArray(np.arange(self.size)), 1 / self.size).conj() * (self.internal + x - y)
+        y = (np.sum(self.internal) / self.size).astype(np.csingle)
+        new = get_range(np.arange(self.size), 1 / self.size).conj().astype(np.csingle) * (self.internal + x - y).astype(np.csingle)
 
-        self.internal = new
 
-        return (self.internal * get_range(csArray(np.arange(self.size)), (self.cnt % self.size) / self.size).conj()).array
+        self.internal = new.astype(np.csingle)
+
+        return (self.internal * get_range(np.arange(self.size), (self.cnt % self.size) / self.size).conj().astype(np.csingle)).astype(np.csingle)
 
 
 class MOVDFT():
@@ -122,7 +124,7 @@ class MOVDFT():
 
         return np.fft.fft(np.array(self.buffer).astype(self.type)).astype(self.type)
 
-windowsize = 64
+windowsize = 25
 
 sdft = SDFT(windowsize)
 msdft = mSDFT(windowsize)
@@ -165,7 +167,7 @@ def plot_dfts(bin=3):
 
 def plot_diffs():
     #plt.plot(dif_sdft, color="r", alpha=0.5, label="SDFT error")
-    plt.plot(dif_msdft, color="g", alpha=0.5, label="mSDFT error")
+    #plt.plot(dif_msdft, color="g", alpha=0.5, label="mSDFT error")
     plt.plot(dif_osdft, color="y", alpha=0.5, label="oSDFT error")
     plt.plot(dif_osdft, color="orange", alpha=0.5, label="Resonator oSDFT error")
     plt.plot(dif_movdft, color="b", alpha=0.5, label="Moving DFT error")
@@ -173,5 +175,5 @@ def plot_diffs():
 
 
 plot_diffs()
-plt.savefig("forced_csingle_repeat.png")
+#plt.savefig("mo-comp-norepeat.png")
 plt.show()
