@@ -31,14 +31,24 @@ class csArray():
     def __neg__(self):
         return -1 * self
 
+    def __matmul__(self, other):
+        return csArray(self.array @ other)
+
+    def T(self):
+        return csArray(self.array.T)
+
     def conj(self):
         return csArray(self.array.conj())
 
 def csZeros(shape):
-    return csArray(np.zeros_like(shape))
+    return csArray(np.zeros(shape))
 
 def csExp(arr):
     return csArray(np.exp(arr.array))
 
 def csSum(arr):
     return np.sum(arr.array).astype(np.csingle)
+
+def csDot(arr1, arr2):
+    return csArray(np.inner(arr1.array, arr2.array))
+
