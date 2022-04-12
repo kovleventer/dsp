@@ -11,7 +11,7 @@ np.random.seed(0)
 length = 2
 sample_rate = 1000
 f = 1
-A = 1  # 2**31
+A = 1/20  # 2**31
 time = np.arange(0, length, 1 / sample_rate)
 x = A * np.sin(2 * np.pi * f * time)
 
@@ -20,9 +20,10 @@ x = A * np.sin(2 * np.pi * f * time)
 
 snrs = []
 snr_refs = []
+snr_dithers = []
 
 for n_frac in range(3, 33):
-    fxp_ref = Fxp(None, signed=True, n_word=n_frac + 15, n_frac=n_frac)
+    fxp_ref = Fxp(None, signed=True, n_word=n_frac + 10, n_frac=n_frac, rounding='around')
 
     def Q(x):
         return Fxp(x, like=fxp_ref).get_val()
@@ -63,18 +64,27 @@ for n_frac in range(3, 33):
 
     Ps = np.mean(np.abs(output_ref) ** 2)
     Pn = np.mean(np.abs(output_ref - output_fxp) ** 2)
+    Pndither = np.mean(np.abs(output_ref - output_fxp_d) ** 2)
     Psfxp = np.mean(np.abs(output_fxp) ** 2) - Pn
+    Psdfxp = np.mean(np.abs(output_fxp_d) ** 2) - Pn
     Pnexp = (q ** 2) / 6 / (1-a**2)
+
 
     snr = 10 * np.log10(Psfxp / Pn)
     snr_ref = 10 * np.log10(Ps / Pnexp)
+    snr_dither = 10 * np.log10(Psdfxp / Pndither)
     snrs.append(snr)
     snr_refs.append(snr_ref)
+    snr_dithers.append(snr_dither)
     print(Ps, Pn, Pnexp, snr, snr_ref)
+    #print(71+10*np.log10(1-a**2), q)
+
+    #break
 
 
 plt.plot(np.arange(3, 33), snrs, label="measured")
 plt.plot(np.arange(3, 33), snr_refs, label="reference")
+plt.plot(np.arange(3, 33), snr_dithers, color="r", label="dither")
 plt.legend()
 plt.savefig("iir.png")
 plt.show()
