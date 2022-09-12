@@ -27,7 +27,7 @@ snr_refs = []
 
 for n_frac in range(3, 33):
 
-    fxp_ref = Fxp(None, signed=True, n_word=n_frac+10, n_frac=n_frac)
+    fxp_ref = Fxp(None, signed=True, n_word=n_frac+10, n_frac=n_frac, rounding='around')
     x_q = Fxp(x, like=fxp_ref)
     x_qq = x_q.get_val()
 
@@ -62,8 +62,11 @@ for n_frac in range(3, 33):
     print(Ps, Pn, Pnexp, snr, snr_ref)
     # break
 
+fig = plt.figure()
+plt.xlabel('Fractional bits')
+plt.ylabel('SNR (dB)')
 plt.plot(np.arange(3, 33), snrs, label="measured")
 plt.plot(np.arange(3, 33), snr_refs, label="reference")
 plt.legend()
 #plt.show()
-plt.savefig("mov_avg.png")
+fig.savefig("mov_avg.png")

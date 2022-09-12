@@ -6,7 +6,7 @@ import collections
 from forcedarray import csZeros, csArray, csExp, csSum, csDot
 
 np.random.seed(0)
-x = np.random.randn(100000).astype(np.single)
+x = np.random.uniform(0, 1, 100000).astype(np.single)
 #x = np.tile(np.random.randn(1000), 100)
 
 
@@ -167,7 +167,7 @@ class MOVDFT():
 
         return fix_array2(np.fft.fft(np.array(self.buffer).astype(self.type)).astype(self.type) / self.size)
 
-windowsize = 64
+windowsize = 46
 
 sdft = SDFT(windowsize)
 msdft = mSDFT(windowsize)
@@ -222,8 +222,8 @@ def plot_dfts(bin=3):
 def plot_diffs():
     #plt.plot(dif_sdft, color="r", alpha=0.5, label="SDFT error")
     #plt.plot(dif_msdft, color="g", alpha=0.5, label="mSDFT error")
-    plt.plot(dif_osdft, color="y", alpha=0.5, label="oSDFT error")
-    plt.plot(dif_pososdft, color="purple", alpha=0.5, label="real oSDFT error")
+    #plt.plot(dif_osdft, color="y", alpha=0.5, label="oSDFT error")
+    #plt.plot(dif_pososdft, color="purple", alpha=0.5, label="real oSDFT error")
     #plt.plot(dif_resosdft, color="orange", alpha=0.5, label="Resonator oSDFT error")
     plt.plot(dif_movdft, color="b", alpha=0.5, label="Moving DFT error")
     plt.legend()
@@ -237,5 +237,4 @@ def plot_selfdiffs():
     plt.legend()
 
 plot_diffs()
-#plt.savefig("osdft_4_repeat.png")
 plt.show()

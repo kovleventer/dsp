@@ -14,6 +14,7 @@ f = 1
 A = 1/20  # 2**31
 time = np.arange(0, length, 1 / sample_rate)
 x = A * np.sin(2 * np.pi * f * time)
+#x = np.tile(np.random.randn(100), 20)
 
 #plt.plot(time, x)
 #plt.show()
@@ -25,8 +26,14 @@ snr_dithers = []
 for n_frac in range(3, 33):
     fxp_ref = Fxp(None, signed=True, n_word=n_frac + 10, n_frac=n_frac, rounding='around')
 
+    def Qd(x):
+        d = np.random.uniform(-fxp_ref.precision/2, fxp_ref.precision/2)
+        #d = 0
+        return Fxp(x + d, like=fxp_ref).get_val()
+
     def Q(x):
-        return Fxp(x, like=fxp_ref).get_val()
+        d = 0
+        return Fxp(x + d, like=fxp_ref).get_val()
 
     q = fxp_ref.precision
     x_q = Fxp(x, like=fxp_ref)
@@ -41,7 +48,7 @@ for n_frac in range(3, 33):
     state_fxp = np.zeros(len(x)+1, dtype=np.cdouble)
     state_fxp_d = np.zeros(len(x) + 1, dtype=np.cdouble)
 
-    a = 0.85 * np.exp(1j*67/180 * np.pi)
+    a = 0.6 * np.exp(1j*95/180 * np.pi)
 
     ar = a.real
     ai = a.imag
@@ -51,9 +58,14 @@ for n_frac in range(3, 33):
         state_ref[i+1] = output_ref[i]
 
         re = Q( Q( Q(state_fxp[i].real * ar) - Q(state_fxp[i].imag * ai) ) + x_qq[i] )
-        im = Q( Q( Q(state_fxp[i].imag * ar) + Q(state_fxp[i].real * ai) ) )
+        im = Q( Q(state_fxp[i].imag * ar) + Q(state_fxp[i].real * ai) )
         output_fxp[i] = re + 1j * im
         state_fxp[i+1] = output_fxp[i]
+
+        re = Qd(Qd(Qd(state_fxp_d[i].real * ar) - Qd(state_fxp_d[i].imag * ai)) + x_qq[i])
+        im = Qd(Qd(state_fxp_d[i].imag * ar) + Qd(state_fxp_d[i].real * ai))
+        output_fxp_d[i] = re + 1j * im
+        state_fxp_d[i + 1] = output_fxp_d[i]
 
         #d1 = np.random.uniform(-q/2, q/2)
         #d2 = np.random.uniform(-q/2, q/2)
@@ -73,7 +85,7 @@ for n_frac in range(3, 33):
     Pndither = np.mean(np.abs(output_ref - output_fxp_d) ** 2)
     Psfxp = np.mean(np.abs(output_fxp) ** 2) - Pn
     Psdfxp = np.mean(np.abs(output_fxp_d) ** 2) - Pn
-    Pnexp = (q ** 2) / 12 * 2 * 2 / (1-np.abs(a)**2)
+    Pnexp = (q ** 2) / 12 * 7 / (1-np.abs(a)**2)
 
 
     snr = 10 * np.log10(Psfxp / Pn)
@@ -87,10 +99,11 @@ for n_frac in range(3, 33):
 
     #break
 
-
+fig = plt.figure()
+plt.xlabel('Fractional bits')
+plt.ylabel('SNR (dB)')
 plt.plot(np.arange(3, 33), snrs, label="measured")
 plt.plot(np.arange(3, 33), snr_refs, label="reference")
-#plt.plot(np.arange(3, 33), snr_dithers, color="r", label="dither")
+plt.plot(np.arange(3, 33), snr_dithers, color="r", label="dither")
 plt.legend()
-plt.savefig("ciir.png")
-plt.show()
+fig.savefig("ciir.png")

@@ -4,9 +4,16 @@ from fxpmath import Fxp
 import collections
 
 np.random.seed(0)
-#x = np.random.uniform(0, 1, 100000).astype(np.single)
-x = np.tile(np.random.randn(1000), 100)
+norepeat = True
+
+if norepeat:
+    x = np.random.uniform(0, 1, 100000)
+    x = np.sin(np.arange(100000))
+else:
+    x = np.tile(np.random.randn(1000), 100)
 N = 64
+
+nrep_str = "NOREPEAT" if norepeat else "REPEAT"
 
 def WK():
     return np.exp(1j * 2 * np.pi * np.arange(N) / N)
@@ -19,11 +26,13 @@ def WK4():
     t = np.exp(1j * 2 * np.pi * (np.arange(N // 4 - 1) + 1) / N)
     return np.concatenate([np.array([1]), t, np.array([1j]), -t[::-1].conj(), np.array([-1]), -t, np.array([-1j]), t[::-1].conj()])
 
-n_frac = 16
+n_frac = 8
 fxp_ref = Fxp(None, signed=True, n_word=n_frac + 10, n_frac=n_frac, rounding='around')
 
 def Q(x):
-    return Fxp(x, like=fxp_ref).get_val()
+    d = np.random.uniform(-fxp_ref.precision / 2, fxp_ref.precision / 2)
+    #d = 0
+    return Fxp(x + d, like=fxp_ref).get_val()
 
 x = Q(x)
 
@@ -64,6 +73,10 @@ for i, xx in enumerate(x):
     if i % 1000 == 0: print(i)
 
 r = np.abs(res_movdft_f64 - res_sdft)
+plt.plot(np.mean(r, axis=1))
+plt.savefig(nrep_str + "_DIFF_Q" + str(n_frac) + "_N" + str(N) + ".png")
+plt.show()
+
 l = []
 for i in range(N):
     res = r[-1, i]
@@ -71,7 +84,7 @@ for i in range(N):
     print(i, res)
     l.append(res)
 
-plt.savefig("REPEAT_BINS_Q" + str(n_frac) + "_N" + str(N) + ".png")
+plt.savefig(nrep_str + "_BINS_Q" + str(n_frac) + "_N" + str(N) + ".png")
 plt.show()
 
 fig, ax1 = plt.subplots()
@@ -81,6 +94,6 @@ ax1.plot(l, color="b")
 ax2.set_ylabel("Wk quant. error", color='r')
 ax2.plot(np.abs(wk-wk2), color="r")
 fig.tight_layout()
-plt.savefig("REPEAT_ERRORS_Q" + str(n_frac) + "_N" + str(N) + ".png")
+plt.savefig(nrep_str + "_ERRORS_Q" + str(n_frac) + "_N" + str(N) + ".png")
 plt.show()
 

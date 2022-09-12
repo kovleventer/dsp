@@ -54,13 +54,14 @@ for n_frac in range(3, 33):
         output_fxp_d[i] = Q(Q(state_fxp_d[i] * a + d1) + x_qq[i] + d2)
         state_fxp_d[i + 1] = output_fxp_d[i]
 
-    """plt.plot(x_qq, label="x")
+    plt.plot(x_qq, label="x")
     plt.plot(output_ref, label="reference filter output")
     plt.plot(output_fxp, label="fxp filter output")
     plt.plot(output_fxp_d, label="fxp dither filter output")
+    plt.title("Frac. bits: " + str(n_frac))
     plt.legend()
     plt.savefig("iir_" + str(n_frac) + "_dither.png")
-    plt.show()"""
+    plt.show()
 
     Ps = np.mean(np.abs(output_ref) ** 2)
     Pn = np.mean(np.abs(output_ref - output_fxp) ** 2)
@@ -81,10 +82,11 @@ for n_frac in range(3, 33):
 
     #break
 
-
+fig = plt.figure()
+plt.xlabel('Fractional bits')
+plt.ylabel('SNR (dB)')
 plt.plot(np.arange(3, 33), snrs, label="measured")
 plt.plot(np.arange(3, 33), snr_refs, label="reference")
 plt.plot(np.arange(3, 33), snr_dithers, color="r", label="dither")
 plt.legend()
-plt.savefig("iir.png")
-plt.show()
+fig.savefig("iir.png")
